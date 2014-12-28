@@ -180,7 +180,7 @@ GoogleMusic.prototype.search2 = function(query, cb) {
 					if(cb)
 						cb(parsed);
 				} catch(e) {
-					console.error("gmusic:search2(), parsing failed");
+					console.log("gmusic:search2(), parsing failed " + query);
 				}
 			});
 	}, 3000);

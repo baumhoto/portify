@@ -50,6 +50,16 @@ if (typeof Proxy !== 'object' || typeof WeakMap !== 'function') {
 
 //console.log=function(){};
 
+var fs = require('fs');
+var util = require('util');
+var log_file = fs.createWriteStream(__dirname + '/debug.log', {flags : 'w'});
+var log_stdout = process.stdout;
+
+console.log = function(d) { //
+  log_file.write(util.format(d) + '\n');
+  log_stdout.write(util.format(d) + '\n');
+};
+
 function wait(delay) {
 	return {
 		then: function (callback) {
@@ -150,11 +160,19 @@ function trackWorker(track, gmPlaylist, callback) {
 var searchQueue = new TimeQueue(searchWorker, { concurrency: 5, every: 1000 });
 
 function searchWorker(track, playlist, callback) {
-	googleMusic.search2(track.artist[0].name+" - "+track.name,
+	//console.log("searching for: " + track.artist[0].name+" - "+track.name);
+try {
+    googleMusic.search2(track.artist[0].name+" - "+track.name,
 		function(res) {
 			callback();
 			processGmSearchResult(track, playlist, res);
 		});
+}
+catch(err) {
+    console.log("Error during search: " + track.artist[0].name+" - "+track.name);
+}
+
+	
 }
 
 /*function playlistWorker(arg1, arg2, callback) {
@@ -217,10 +235,10 @@ var processGmSearchResult = function(track, playlist, searchResult) {
 		var gmusicMatch = searchResult[1][0][0];
 
 		var gmusicId = gmusicMatch[0];
-		var gmusicNormalisedArtist = gmusicMatch[7];
-		var gmusicNormalisedAlbum = gmusicMatch[9];
-		var gmusicNormalisedAlbumArtist = gmusicMatch[8];
-		var gmusicNormalisedTitle = gmusicMatch[6];
+		var gmusicNormalisedArtist = gmusicMatch[3];
+		var gmusicNormalisedAlbum = gmusicMatch[4];
+		var gmusicNormalisedAlbumArtist = gmusicMatch[3];
+		var gmusicNormalisedTitle = gmusicMatch[1];
 
 		if(gmusicNormalisedTitle.indexOf('karaoke') == -1) {
 			//io.sockets.emit('gmusic', { type: 'found_possible_matches', data: { found: true, gm_playlist_id: playlist.id, spotify_uri: track.uri, gm_id: gmusicId }});
@@ -228,17 +246,20 @@ var processGmSearchResult = function(track, playlist, searchResult) {
 			googleMusic.addToPlaylist(playlist.id, [ {"id":gmusicId,"type":2} ], function( track, playlist, gmusicId, res) {
 				io.sockets.emit('gmusic', { type: 'added', data: { found: false, spotify_uri: track.uri, gm_playlist_id: playlist.id, gm_id: gmusicId }});
 				transferProcess.emit("trackDone", track.uri );
+				//console.log("track found: "+ track.artist[0].name + "/" + track.name +  " on google music");
 			}.bind(this, track,playlist,gmusicId));
 
 		} else {
 			//io.sockets.emit('gmusic', { type: 'found_possible_matches', data: { found: false, spotify_uri: track.uri, karaoke: true }});
 			io.sockets.emit('gmusic', { type: 'not_added', data: { found: false, spotify_uri: track.uri, karaoke: true, track: track }});
 			transferProcess.emit("trackDone", track.uri );
+			console.log("only karaoke found for :"+ track.artist[0].name + "/" + track.name +  " on google music");
 		}
 	} else {
 		//io.sockets.emit('gmusic', { type: 'found_possible_matches', data: { found: false, gm_playlist_id: playlist.id, spotify_uri: track.uri }});
 		io.sockets.emit('gmusic', { type: 'not_added', data: { found: false, gm_playlist_id: playlist.id, spotify_uri: track.uri, track: track  }});
 		transferProcess.emit("trackDone", track.uri );
+		console.log("track not found for: "+ track.artist[0].name + "/" + track.name +  " on google music");
 	}
 }
 
