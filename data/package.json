@@ -5,7 +5,7 @@
     "private": true,
     "dependencies": {
     	"googleclientlogin": "*",
-    	"spotify-web": "1.2.0",
+    	"spotify-web": "*",
     	"socket.io": "*",
     	"express": "3.5.1",
     	"superagent": "*",
